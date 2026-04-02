@@ -105,28 +105,22 @@ class EvalService:
         return [faithfulness, answer_relevancy]
 
     async def generate_ground_truth(self, question: str, contexts: List[str]) -> str:
-        """Use a high-performance LLM (Critic) to generate a gold-standard answer from the provided contexts."""
+        """Use Qwen-7B (Hugging Face) to generate a gold-standard answer, saving Gemini quota."""
         context_text = chr(10).join(f"- {c}" for c in contexts)
         prompt = f"You are a 'Gold Standard' answer generator. Based ON THE PROVIDED CONTEXT ONLY, provide a definitive, accurate, and concise 'Gold Standard' answer to the user question: '{question}'\n\nCONTEXT:\n{context_text}\n\nIMPORTANT: Provide the answer as a plain text paragraph only. Do NOT use JSON, brackets, or markdown formatting."
         
         try:
-            # We prefer the stronger HF model for the "Gold Standard" generation
-            return self.hf_llm._call(prompt)
-        except Exception:
-            # Fallback to Gemini if HF is down
-            response = await self.gemini_llm.ainvoke(prompt)
-            return response.content if hasattr(response, 'content') else str(response)
+            # Always use HF for ground truth generation to preserve Gemini quota
+            return await self.hf_llm._acall(prompt)
+        except Exception as e:
+            logger.error(f"Ground Truth generation failed: {e}")
+            return "The system could not generate a ground truth answer due to an AI error."
 
-    async def evaluate_rag(self, test_data: List[Dict], use_fallback=True):
-        """
-        Evaluate samples with automatic fallback support and synthetic ground truth.
-        """
-        logger.info(f"Starting RAGAS evaluation on {len(test_data)} samples.")
-        
+    async def evaluate_rag(self, test_data: List[Dict]) -> Dict:
+        """Run the full RAGAS evaluation suite using Qwen-7B as the primary auditor."""
         try:
-            # Setup wrappers
-            llm_to_use = self.hf_llm if use_fallback else self.gemini_llm
-            llm_wrapper = LangchainLLMWrapper(llm_to_use)
+            # We explicitly use the HF Fallback (Qwen) for the Audit to save Gemini quota
+            llm_wrapper = LangchainLLMWrapper(self.hf_llm)
             emb_wrapper = LangchainEmbeddingsWrapper(self.gemini_embeddings)
             
             from ragas.metrics import answer_correctness, context_precision, context_recall

@@ -18,11 +18,15 @@ class LLMService:
         self.hf_token = settings.HUGGINGFACEHUB_API_TOKEN
         
         # Initialize Gemini as Primary
+        # Force the stable model name to avoid experimental quota issues
+        model_name = settings.GEMINI_MODEL_NAME or "gemini-1.5-flash"
+        if "2.5" in model_name: 
+            model_name = "gemini-1.5-flash"
+            
         self.gemini_llm = ChatGoogleGenerativeAI(
-            model=settings.GEMINI_MODEL_NAME,
+            model=model_name,
             google_api_key=self.google_api_key,
-            temperature=0,
-            max_retries=0,
+            temperature=0.3,
             convert_system_message_to_human=True
         )
         

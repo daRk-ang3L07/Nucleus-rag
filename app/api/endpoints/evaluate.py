@@ -105,16 +105,29 @@ async def run_audit_background(task_id: str, request: Optional[EvalRequest], use
         eval_tasks[task_id]["progress"] = f"Generating responses for {len(test_questions)} samples..."
         
         # 2. Parallel Response Generation
-        async def process_one_q(q):
-            rag_response = await llm_service.ask_question(q, user_id=user_id)
-            contexts = rag_response.get("context_trace", [])
-            ground_truth = await eval_service.generate_ground_truth(q, contexts)
-            return {
-                "question": q,
-                "answer": rag_response["answer"],
-                "contexts": contexts,
-                "ground_truth": ground_truth
-            }
+        async def process_one_q(q: str):
+            try:
+                # 1. Get real RAG response (Uses llm_service fallback)
+                rag_response = await llm_service.ask_question(q, user_id=user_id)
+                contexts = rag_response.get("context_trace", [])
+                
+                # 2. Get Gold Standard (Uses Qwen directly)
+                ground_truth = await eval_service.generate_ground_truth(q, contexts)
+                
+                return {
+                    "question": q,
+                    "answer": rag_response["answer"],
+                    "contexts": contexts,
+                    "ground_truth": ground_truth
+                }
+            except Exception as e:
+                logger.error(f"Audit Sample Failed for [{q}]: {e}")
+                return {
+                    "question": q,
+                    "answer": f"Error: {str(e)}",
+                    "contexts": [],
+                    "ground_truth": "N/A"
+                }
 
         test_data = await asyncio.gather(*[process_one_q(q) for q in test_questions])
         
