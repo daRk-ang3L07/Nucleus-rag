@@ -1,3 +1,13 @@
+---
+title: Nucleus RAG
+emoji: 🚀
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🚀 Resilient Full-Stack RAG (LLMOps Architecture)
 
 A production-grade, multi-model RAG (Retrieval-Augmented Generation) system built for 100% uptime, featuring a TypeScript/React frontend and a resilient Python/FastAPI backend.
