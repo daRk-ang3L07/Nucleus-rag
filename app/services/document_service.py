@@ -3,6 +3,7 @@ from typing import List
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.core.config import settings
+from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
