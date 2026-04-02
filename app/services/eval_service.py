@@ -32,10 +32,10 @@ class HFRestLLM(LLM):
         }
         
         models_to_try = [
-            "Qwen/Qwen2.5-72B-Instruct",
-            "microsoft/Phi-3-mini-4k-instruct",
-            "google/gemma-2b-it",
-            "meta-llama/Llama-3.2-3B-Instruct"
+            "mistralai/Mistral-7B-Instruct-v0.3",
+            "HuggingFaceH4/zephyr-7b-beta",
+            "meta-llama/Llama-3.1-8B-Instruct",
+            "microsoft/Phi-3.5-mini-instruct"
         ]
         
         last_error = None
@@ -140,14 +140,22 @@ class EvalService:
             
             advanced_metrics = [faithfulness, answer_relevancy, answer_correctness, context_precision, context_recall]
             
-            # Convert to RAGAS Dataset format with strict type casting
             dataset_dict = {
                 "question": [str(item["question"]) for item in test_data],
                 "answer": [str(item["answer"]) for item in test_data],
                 "contexts": [[str(c) for c in item["contexts"]] for item in test_data],
                 "ground_truth": [str(item.get("ground_truth", "The AI should provide an accurate answer based on documents.")) for item in test_data]
             }
-            dataset = Dataset.from_dict(dataset_dict)
+
+            from datasets import Features, Sequence, Value
+            features = Features({
+                "question": Value("string"),
+                "answer": Value("string"),
+                "contexts": Sequence(Value("string")),
+                "ground_truth": Value("string")
+            })
+            
+            dataset = Dataset.from_dict(dataset_dict, features=features)
             
             # Configure RAGAS to be "Gentle" and patient
             run_config = RunConfig(timeout=300, max_retries=5, max_workers=1)
@@ -158,7 +166,8 @@ class EvalService:
                 metrics=advanced_metrics, 
                 llm=llm_wrapper, 
                 embeddings=emb_wrapper,
-                run_config=run_config
+                run_config=run_config,
+                raise_exceptions=False
             )
             
             # Convert to standard dictionary

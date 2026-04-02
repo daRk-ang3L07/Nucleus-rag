@@ -21,8 +21,10 @@ class Settings(BaseSettings):
     
     EMBEDDING_MODEL_NAME: str = "text-embedding-004"
 
-    # Vector Database Configuration
-    CHROMA_DB_PATH: str = "chroma_db"
+    # Vector Database & File Configuration
+    # Automatically use /data/ if we are on Hugging Face with persistent storage enabled
+    CHROMA_DB_PATH: str = "/data/chroma_db" if os.path.exists("/data") else "chroma_db"
+    DATA_DIR: str = "/data/uploads" if os.path.exists("/data") else "data"
 
     # Supabase Configuration
     SUPABASE_URL: Optional[str] = None

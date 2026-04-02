@@ -72,6 +72,7 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState('')
   const [library, setLibrary] = useState<string[]>([])
   const [newQuestion, setNewQuestion] = useState('')
+  const [evalProgress, setEvalProgress] = useState('')
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -163,6 +164,8 @@ function App() {
     if (!session) { setShowLoginModal(true); return }
     setLoading(true)
     setEvalData(null)
+    setEvalProgress('Requesting audit...')
+    
     try {
       const res = await fetch('/api/v1/evaluate/', {
         method: 'POST',
@@ -173,9 +176,33 @@ function App() {
         body: JSON.stringify({ questions: [newQuestion] })
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setEvalData(await res.json())
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+      const { task_id } = await res.json()
+      
+      // Start Polling
+      const interval = setInterval(async () => {
+        try {
+          const sRes = await fetch(`/api/v1/evaluate/status/${task_id}`)
+          const statusData = await sRes.json()
+          setEvalProgress(statusData.progress || 'Processing...')
+          
+          if (statusData.status === 'completed') {
+            clearInterval(interval)
+            setEvalData(statusData.result)
+            setLoading(false)
+          } else if (statusData.status === 'failed') {
+            clearInterval(interval)
+            showToast(`Audit Failed: ${statusData.progress}`, 'error')
+            setLoading(false)
+          }
+        } catch (e) {
+          clearInterval(interval)
+          setLoading(false)
+        }
+      }, 3000)
+    } catch (e: any) { 
+      showToast(`Could not start audit: ${e.message}`, 'error')
+      setLoading(false) 
+    }
   }
 
   const confirmDelete = async () => {
@@ -489,6 +516,13 @@ function App() {
                   {loading ? 'Running…' : 'Execute Audit'}
                 </button>
               </div>
+
+              {loading && evalProgress && (
+                <div style={{ margin: '16px 0', textAlign: 'center', fontSize: '0.85rem', color: 'var(--accent-text)' }}>
+                  <Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+                  {evalProgress}
+                </div>
+              )}
 
               {evalData ? (
                 <>

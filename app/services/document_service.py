@@ -2,13 +2,13 @@ import os
 from typing import List
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from app.core.logger import get_logger
+from app.core.config import settings
 
 logger = get_logger(__name__)
 
 
 class DocumentService:
-    def __init__(self, data_path: str = "data"):
+    def __init__(self, data_path: str = settings.DATA_DIR):
         self.data_path = data_path
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
