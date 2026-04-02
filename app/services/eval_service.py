@@ -32,19 +32,25 @@ class HFRestLLM(LLM):
         }
         
         models_to_try = [
+            "Qwen/Qwen2.5-7B-Instruct",
             "mistralai/Mistral-7B-Instruct-v0.3",
-            "HuggingFaceH4/zephyr-7b-beta",
-            "meta-llama/Llama-3.1-8B-Instruct",
-            "microsoft/Phi-3.5-mini-instruct"
+            "HuggingFaceH4/zephyr-7b-beta"
         ]
+        
+        # Ragas-friendly system instruction to ensure raw output
+        strict_instruction = "You are a precise data extractor. OUTPUT ONLY the requested data (JSON, lists, or specific strings) without any conversational filler, intro, or metadata. Be extremely literal."
         
         last_error = None
         for model in models_to_try:
             try:
                 payload = {
                     "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 500
+                    "messages": [
+                        {"role": "system", "content": strict_instruction},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 800,
+                    "temperature": 0.1
                 }
                 response = requests.post(url, headers=headers, json=payload, timeout=60)
                 if response.status_code == 200:
