@@ -31,11 +31,7 @@ class HFRestLLM(LLM):
             "Content-Type": "application/json"
         }
         
-        models_to_try = [
-            "Qwen/Qwen2.5-7B-Instruct",
-            "mistralai/Mistral-7B-Instruct-v0.3",
-            "HuggingFaceH4/zephyr-7b-beta"
-        ]
+        models_to_try = ["Qwen/Qwen2.5-7B-Instruct"]
         
         # Ragas-friendly system instruction to ensure raw output
         strict_instruction = "You are a precise data extractor. OUTPUT ONLY the requested data (JSON, lists, or specific strings) without any conversational filler, intro, or metadata. Be extremely literal."
@@ -61,7 +57,12 @@ class HFRestLLM(LLM):
                 last_error = str(e)
                 continue
                 
-        raise Exception(f"All Hugging Face fallback models failed. Last error: {last_error}")
+        raise Exception(f"Hugging Face (Qwen-7B) failed. Last error: {last_error}")
+
+    async def _acall(self, prompt: str, stop=None, run_manager=None, **kwargs) -> str:
+        """Async version of the REST call."""
+        import asyncio
+        return await asyncio.to_thread(self._call, prompt, stop, run_manager, **kwargs)
 
 class SafeGemini(ChatGoogleGenerativeAI):
     """Intercept kwargs injected by Ragas that crash the Gemini client."""
