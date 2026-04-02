@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 from app.core.config import settings
 from app.core.logger import get_logger
 
@@ -32,16 +35,28 @@ app.include_router(search_router, prefix=f"{settings.API_V1_STR}/search", tags=[
 app.include_router(chat_router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat"])
 app.include_router(eval_router, prefix=f"{settings.API_V1_STR}/evaluate", tags=["Evaluation"])
 
-@app.get("/", tags=["Home"])
-async def root():
-    """
-    Root endpoint returning a welcome message.
-    """
-    return {
-        "message": f"Welcome to the {settings.PROJECT_NAME}",
-        "version": settings.VERSION,
-        "docs_url": "/docs"
-    }
+# Serve Static Files (Frontend)
+FRONTEND_PATH = os.path.join(os.getcwd(), "frontend/dist")
+
+if os.path.exists(FRONTEND_PATH):
+    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_PATH, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Allow API and Docs through, otherwise serve index.html
+        if full_path.startswith(("api", "docs", "redoc", "openapi.json")):
+             return None # Let FastAPI's internal router handle it
+        
+        # Check if the file exists physically
+        file_path = os.path.join(FRONTEND_PATH, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        return FileResponse(os.path.join(FRONTEND_PATH, "index.html"))
+else:
+    @app.get("/", tags=["Home"])
+    async def root():
+        return {"message": "Backend is running. Frontend build not found.", "docs": "/docs"}
 
 @app.get("/health", tags=["Health"])
 async def health_check():
@@ -57,5 +72,5 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info(f"Starting {settings.PROJECT_NAME} on port 8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.info(f"Starting {settings.PROJECT_NAME} on port 7860")
+    uvicorn.run(app, host="0.0.0.0", port=7860)
