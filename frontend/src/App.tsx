@@ -4,8 +4,8 @@ import Markdown from 'markdown-to-jsx'
 import { supabase } from './lib/supabase'
 import LoginModal from './components/LoginModal'
 import ConfirmModal from './components/ConfirmModal'
-import { loadChatHistory, saveMessage } from './lib/chatHistory'
-import { Session } from '@supabase/supabase-js'
+import { loadChatHistory, saveMessage, StoredMessage } from './lib/chatHistory'
+import { Session, AuthChangeEvent } from '@supabase/supabase-js'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -77,11 +77,11 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setSession(session)
       setIsInitializingAuth(false)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setSession(session)
       setIsInitializingAuth(false)
     })
@@ -102,7 +102,7 @@ function App() {
   useEffect(() => { 
     if (session) {
       fetchFiles() 
-      loadChatHistory().then(history => {
+      loadChatHistory().then((history: StoredMessage[]) => {
         if (history.length > 0) {
           setMessages(history as Message[])
         }
