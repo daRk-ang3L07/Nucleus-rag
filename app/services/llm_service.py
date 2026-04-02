@@ -21,7 +21,7 @@ class LLMService:
         # Force the stable model name to avoid experimental quota issues
         model_name = settings.GEMINI_MODEL_NAME or "gemini-1.5-flash"
         if "2.5" in model_name: 
-            model_name = "gemini-1.5-flash"
+            model_name = "gemini-2.5-flash"
             
         self.gemini_llm = ChatGoogleGenerativeAI(
             model=model_name,
