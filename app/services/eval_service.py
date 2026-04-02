@@ -24,13 +24,13 @@ class SafeGemini(ChatGoogleGenerativeAI):
 
 class EvalService:
     def __init__(self):
-        # We use a tiny model for Evaluation (Audit) to stay on Hugging Face's "Forever Free" tier
-        # This model (Phi-3) is usually exempt from monthly Inference Provider credits.
+        # Switch to the new Hugging Face Router (The old api-inference URL is retired)
         self.hf_model = "microsoft/Phi-3-mini-4k-instruct"
+        router_url = f"https://router.huggingface.co/hf-inference/models/{self.hf_model}"
         
         # Configure the HF Engine (Primary for Audit)
         self.hf_llm = HuggingFaceEndpoint(
-            repo_id=self.hf_model,
+            endpoint_url=router_url,
             huggingfacehub_api_token=settings.HUGGINGFACEHUB_API_TOKEN,
             temperature=0.1,
             max_new_tokens=500
