@@ -1,0 +1,36 @@
+# 2026 Enterprise EXPERT Stable RAG Suite (EXACT PINS)
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Core Infrastructure
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+pydantic==2.7.4
+pydantic-settings==2.4.0
+python-dotenv==1.0.1
+
+# LangChain 0.3 Ecosystem (The modern standard - LOCKED)
+langchain==0.3.7
+langchain-community==0.3.7
+langchain-core==0.3.17
+langchain-google-genai==2.0.1
+supabase
+langchain-huggingface==0.1.1
+huggingface-hub==0.23.0
+langchain-chroma==0.1.4
+langchain-text-splitters==0.3.0
+
+# Intelligence & Performance (CPU Optimized)
+torch==2.2.1+cpu
+transformers==4.41.2
+sentence-transformers==2.6.1
+rank_bm25==0.2.2
+PyYAML==6.0.1
+
+# Data & Evaluation
+ragas==0.1.5
+datasets==2.18.0
+pandas==2.2.1
+chromadb==0.4.24
+pypdf==4.1.0
+python-multipart==0.0.9
+aiohttp==3.9.3
