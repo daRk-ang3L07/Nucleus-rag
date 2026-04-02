@@ -25,13 +25,15 @@ class HFRestLLM(LLM):
 
     def _call(self, prompt: str, stop=None, run_manager=None, **kwargs) -> str:
         import requests
-        url = "https://router.huggingface.co/v1/chat/completions"
+        # Switch to the Legacy Inference API (usually free/separate from Messages credits)
+        model_id = "Qwen/Qwen2.5-7B-Instruct"
+        url = f"https://api-inference.huggingface.co/models/{model_id}"
         headers = {
             "Authorization": f"Bearer {self.hf_token}", 
             "Content-Type": "application/json"
         }
         
-        models_to_try = ["Qwen/Qwen2.5-7B-Instruct"]
+        models_to_try = [model_id]
         
         # Ragas-friendly system instruction to ensure raw output
         strict_instruction = "You are a precise data extractor. OUTPUT ONLY the requested data (JSON, lists, or specific strings) without any conversational filler, intro, or metadata. Be extremely literal."
@@ -40,24 +42,42 @@ class HFRestLLM(LLM):
         for model in models_to_try:
             try:
                 payload = {
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": strict_instruction},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "max_tokens": 800,
-                    "temperature": 0.1
+                    "inputs": f"<|system|>\n{strict_instruction}\n<|user|>\n{prompt}\n<|assistant|>",
+                    "parameters": {"max_new_tokens": 500, "temperature": 0.1}
                 }
                 response = requests.post(url, headers=headers, json=payload, timeout=60)
                 if response.status_code == 200:
-                    return response.json()["choices"][0]["message"]["content"]
+                    res_json = response.json()
+                    # Legacy API returns a list or a dict depending on the task
+                    if isinstance(res_json, list) and len(res_json) > 0:
+                        text = res_json[0].get("generated_text", "")
+                        # Strip out the prompt if it's returned
+                        if "<|assistant|>" in text:
+                            return text.split("<|assistant|>")[-1].strip()
+                        return text
+                    return str(res_json)
+                elif response.status_code == 503:
+                    # Model is loading, wait a bit
+                    import time
+                    time.sleep(15)
+                    raise Exception("Model is still loading on Hugging Face free tier...")
                 else:
                     raise Exception(f"HTTP {response.status_code}: {response.text}")
             except Exception as e:
                 last_error = str(e)
                 continue
                 
-        raise Exception(f"Hugging Face (Qwen-7B) failed. Last error: {last_error}")
+        # ULTIMATE LAST RESORT: Try Gemini but with a huge warning
+        logger.warning(f"HF Free Tier failed, trying Gemini as desperate last resort: {last_error}")
+        try:
+             import time
+             time.sleep(5) # Pre-emptive wait
+             from langchain_google_genai import ChatGoogleGenerativeAI
+             temp_gemini = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.GOOGLE_API_KEY or settings.GEMINI_API_KEY)
+             res = temp_gemini.invoke(prompt)
+             return str(res.content)
+        except Exception as final_e:
+             raise Exception(f"Both HF Free Tier and Gemini Fallback failed. {final_e}")
 
     async def _acall(self, prompt: str, stop=None, run_manager=None, **kwargs) -> str:
         """Async version of the REST call."""
