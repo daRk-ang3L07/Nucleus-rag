@@ -52,10 +52,9 @@ class LLMService:
         prompt_text = prompt.messages[0].content if hasattr(prompt, 'messages') else str(prompt)
         
         models_to_try = [
-            "Qwen/Qwen2.5-72B-Instruct",
-            "microsoft/Phi-3-mini-4k-instruct",
-            "google/gemma-2b-it",
-            "meta-llama/Llama-3.2-3B-Instruct"
+            "Qwen/Qwen2.5-7B-Instruct",
+            "mistralai/Mistral-7B-Instruct-v0.3",
+            "HuggingFaceH4/zephyr-7b-beta"
         ]
         
         last_error = None
@@ -65,7 +64,8 @@ class LLMService:
                     payload = {
                         "model": model,
                         "messages": [{"role": "user", "content": prompt_text}],
-                        "max_tokens": 500
+                        "max_tokens": 800,
+                        "temperature": 0.3
                     }
                     async with session.post(url, headers=headers, json=payload, raise_for_status=False) as response:
                         if response.status == 200:

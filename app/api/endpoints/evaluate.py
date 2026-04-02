@@ -120,6 +120,8 @@ async def run_audit_background(task_id: str, request: Optional[EvalRequest], use
         
         # 3. Scientific RAGAS Audit
         eval_tasks[task_id]["progress"] = "Calculating scientific benchmarks..."
+        import asyncio
+        await asyncio.sleep(15)
         results = await eval_service.evaluate_rag(test_data)
         
         # 4. Finalise

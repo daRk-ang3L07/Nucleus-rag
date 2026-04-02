@@ -106,15 +106,8 @@ class EvalService:
 
     async def generate_ground_truth(self, question: str, contexts: List[str]) -> str:
         """Use a high-performance LLM (Critic) to generate a gold-standard answer from the provided contexts."""
-        prompt = f"""
-        Given the following context snippets from a RAG system, write a definitive, accurate, and concise "Gold Standard" answer to the user question.
-        
-        Question: {question}
-        
-        Contexts:
-        {chr(10).join(f"- {c}" for c in contexts)}
-        
-        Gold Standard Answer:"""
+        context_text = chr(10).join(f"- {c}" for c in contexts)
+        prompt = f"You are a 'Gold Standard' answer generator. Based ON THE PROVIDED CONTEXT ONLY, provide a definitive, accurate, and concise 'Gold Standard' answer to the user question: '{question}'\n\nCONTEXT:\n{context_text}\n\nIMPORTANT: Provide the answer as a plain text paragraph only. Do NOT use JSON, brackets, or markdown formatting."
         
         try:
             # We prefer the stronger HF model for the "Gold Standard" generation
