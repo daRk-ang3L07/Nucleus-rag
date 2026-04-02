@@ -20,7 +20,7 @@ export async function loadChatHistory(): Promise<StoredMessage[]> {
     return []
   }
 
-  return (data || []).map(row => ({
+  return (data || []).map((row: any) => ({
     id: row.id,
     role: row.role as 'user' | 'assistant',
     content: row.content,

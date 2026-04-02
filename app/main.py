@@ -39,22 +39,37 @@ app.include_router(eval_router, prefix=f"{settings.API_V1_STR}/evaluate", tags=[
 FRONTEND_PATH = os.path.join(os.getcwd(), "frontend/dist")
 
 if os.path.exists(FRONTEND_PATH):
+    # Dynamic runtime environment variables for the frontend
+    @app.get("/env.js")
+    async def get_env_js():
+        # Only expose the 'Public' anon and URL keys
+        js_content = f"""
+        window.VITE_SUPABASE_URL = "{os.getenv('VITE_SUPABASE_URL', '')}";
+        window.VITE_SUPABASE_ANON_KEY = "{os.getenv('VITE_SUPABASE_ANON_KEY', '')}";
+        """
+        from fastapi import Response
+        return Response(content=js_content, media_type="application/javascript")
+
+    # Mount assets folder for JS/CSS
     app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_PATH, "assets")), name="assets")
 
     @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        # Allow API and Docs through, otherwise serve index.html
+    async def serve_spa_backend(full_path: str):
+        # 1. Skip API/Docs - let FastAPI routers handle these
         if full_path.startswith(("api", "docs", "redoc", "openapi.json")):
-             return None # Let FastAPI's internal router handle it
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404)
         
-        # Check if the file exists physically
+        # 2. Try to serve exact file from dist (e.g. favicon.svg)
         file_path = os.path.join(FRONTEND_PATH, full_path)
         if os.path.isfile(file_path):
             return FileResponse(file_path)
             
+        # 3. Default to index.html for all other routes (SPA handling)
         return FileResponse(os.path.join(FRONTEND_PATH, "index.html"))
 else:
-    @app.get("/", tags=["Home"])
+    logger.warning(f"Frontend dist not found at {FRONTEND_PATH}")
+    @app.get("/")
     async def root():
         return {"message": "Backend is running. Frontend build not found.", "docs": "/docs"}
 
